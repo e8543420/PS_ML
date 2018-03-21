@@ -20,7 +20,7 @@ import pyDOE
 
 
 ##Sampling the input parameters
-lhd = pyDOE.lhs(21, samples=500)
+lhd = pyDOE.lhs(21, samples=300)
 #sns.jointplot(lhd[:,0],lhd[:,1])
 
 ##Sampling the FEM data
