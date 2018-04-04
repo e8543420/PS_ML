@@ -20,7 +20,7 @@ import pyDOE
 
 
 ##Sampling the input parameters
-lhd = pyDOE.lhs(21, samples=300)
+lhd = pyDOE.lhs(21, samples=1000)
 #sns.jointplot(lhd[:,0],lhd[:,1])
 
 ##Sampling the FEM data
@@ -46,10 +46,10 @@ mean_test_parm[index]=np.ones(5)*6.3e10
 std_test_parm=np.ones(21)*7e10*0.05
 std_test_parm[index]=np.ones(5)*7e10*0.17
 cov_test_parm=np.diag(std_test_parm**2)
-#cov_test_parm[2,6]=(7e10*0.17)**2
-#cov_test_parm[6,2]=(7e10*0.17)**2
-#cov_test_parm[14,18]=-(7e10*0.13)**2
-#cov_test_parm[18,14]=-(7e10*0.13)**2
+cov_test_parm[2,6]=(7e10*0.17)**2
+cov_test_parm[6,2]=(7e10*0.17)**2
+cov_test_parm[14,18]=-(7e10*0.13)**2
+cov_test_parm[18,14]=-(7e10*0.13)**2
 
 parm=np.random.multivariate_normal(mean=mean_test_parm,cov=cov_test_parm,size=100)
 #parm=stats.multivariate_normal(mean_test_parm,np.diag(std_test_parm**2)).rvs(size=100)
@@ -62,4 +62,5 @@ pd.DataFrame(FEM_parm).to_csv('FEM_parm.csv',index = False, header = False)
 pd.DataFrame(test_parm).to_csv('test_parm.csv',index = False, header = False)
 pd.DataFrame(FEM_freq).to_csv('FEM_freq.csv',index = False, header = False)
 pd.DataFrame(test_freq).to_csv('test_freq.csv',index = False, header = False)
+
 

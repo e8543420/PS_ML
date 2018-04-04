@@ -74,21 +74,21 @@ if __name__ == "__main__":
     model=MultiOutputClassifier(SVC(kernel='rbf',cache_size=1000,random_state=rng),n_jobs = -2)
     
     #%%  Hyper-parameter selection
-    #C_range = np.logspace(-2, 10, 13)
-    #gamma_range = np.logspace(-9, 3, 13)
-    #param_grid = dict(multioutputclassifier__estimator__gamma=gamma_range, multioutputclassifier__estimator__C=C_range)
-    #my_pipeline = make_pipeline(model)
-    #grid = GridSearchCV(my_pipeline, param_grid=param_grid,cv=3)
-    #grid.fit(X,y)
-    #predictions = grid.predict(test_X)
-    
+#    C_range = np.logspace(-2, 10, 13)
+#    gamma_range = np.logspace(-9, 3, 13)
+#    param_grid = dict(multioutputclassifier__estimator__gamma=gamma_range, multioutputclassifier__estimator__C=C_range)
+#    my_pipeline = make_pipeline(model)
+#    grid = GridSearchCV(my_pipeline, param_grid=param_grid,cv=3)
+#    grid.fit(X,y)
+#    predictions = grid.predict(test_X)
+#    my_pipeline = grid    
     
     #%%  Normal pipeline
     my_pipeline = make_pipeline(model)
     my_pipeline.fit(X, y)
-    my_pipeline.set_params(multioutputclassifier__estimator__C=0.01,multioutputclassifier__estimator__gamma=1.0e-09)
+    my_pipeline.set_params(multioutputclassifier__estimator__C=1,multioutputclassifier__estimator__gamma='auto')
     predictions = my_pipeline.predict(test_X)
-    
+  
     #%%
     results=pd.DataFrame(predictions,columns=np.arange(1,22)).apply(pd.value_counts).T
     #results=test_parm_cats.apply(pd.value_counts).T
@@ -115,6 +115,5 @@ if __name__ == "__main__":
     
     # Plot also the training points
     plt.scatter(X[:, 0], X[:, 1], c=y[:,2], cmap=plt.cm.Paired, edgecolors='k')
-    plt.title('3-Class classification using Support Vector Machine')
     plt.axis('tight')
     plt.show()
