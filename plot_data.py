@@ -33,3 +33,4 @@ hue='p3'
 data=pd.concat((test_freq[['f1','f2']],test_parm_cats[hue]),axis=1)
 
 sns.pairplot(data, hue=hue)
+plt.show()
