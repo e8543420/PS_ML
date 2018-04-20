@@ -33,7 +33,6 @@ if __name__ == "__main__":
     test_parm = pd.read_csv('test_parm.csv', header=None, names=np.arange(1, 22))
     FEM_freq = pd.read_csv('FEM_freq.csv', header=None, names=np.arange(1, 21))
     test_freq = pd.read_csv('test_freq.csv', header=None, names=np.arange(1, 21))
-
     #sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
     ## Cut the input to bins
     trus = 0.15
