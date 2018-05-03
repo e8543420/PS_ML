@@ -18,11 +18,12 @@ from sklearn.preprocessing import Imputer
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.multioutput import MultiOutputClassifier
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix
+from sklearn import linear_model
 
-from sklearn.svm import SVC
+from sklearn.svm import SVR
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
 
@@ -57,9 +58,9 @@ X = ((FEM_freq.values/mean_test_freq)-1)*10
 X = np.ascontiguousarray(X, dtype=np.float32)
 test_X = ((test_freq.values/mean_test_freq-1)*10)
 test_X = np.ascontiguousarray(test_X, dtype=np.float32)
-y = FEM_parm_cats.values
-y = np.ascontiguousarray(y, dtype=np.int8)
-test_y = test_parm_cats.values
+y = FEM_parm.values
+y = np.ascontiguousarray(y, dtype=np.float32)
+test_y = test_parm.values
 test_y = np.ascontiguousarray(test_y, dtype=np.float32)
 
 # Scale the samples to 0 mean and 1 std
@@ -68,14 +69,14 @@ X = scaler.transform(X)
 test_X = scaler.transform(test_X)
 rng = np.random.RandomState(3)
 # model=RandomForestClassifier()
-model = MultiOutputClassifier(
-                              SVC(
-                                  kernel='rbf',
-                                  cache_size=1000,
-                                  random_state=rng,
-                                  class_weight='balanced'
-                                  ), n_jobs=1
-                              )
+# model = MultiOutputRegressor(
+#                             SVR(
+#                                 kernel='rbf',
+#                                 cache_size=1000,
+#                                 degree=21
+#                                 )
+#                             )
+model = MultiOutputRegressor(linear_model.Lasso())
 
 # %%  Hyper-parameter selection
 #    C_range = np.logspace(-2, 10, 13)
@@ -90,17 +91,11 @@ model = MultiOutputClassifier(
 # %%  Normal pipeline
 my_pipeline = make_pipeline(model)
 my_pipeline.fit(X, y)
-my_pipeline.set_params(multioutputclassifier__estimator__C=1,
-                       multioutputclassifier__estimator__gamma='auto')
 predictions = my_pipeline.predict(test_X)
 
-# %%Plot the result and the ideal
-results = pd.DataFrame(predictions,
-                       columns=np.arange(1, 22)
-                       ).apply(pd.value_counts).T
-# results=test_parm_cats.apply(pd.value_counts).T
-results.columns = ['lower', 'in', 'higher']
-results.plot(kind='bar', stacked=True)
+pd.DataFrame(test_y).plot(kind='kde')
+pd.DataFrame(predictions).plot(kind='kde')
+
 # pd.DataFrame(test_parm_cats,columns=np.arange(1,22)).plot(kind='hist',subplots=True)
 # scores = cross_val_score(my_pipeline, X, y, scoring='neg_mean_absolute_error')
 # print(scores)
@@ -130,4 +125,3 @@ results.plot(kind='bar', stacked=True)
 # plt.show()
 
 # Plot confusion matrix
-confusion_matrix(test_y[:, 1], predictions[:, 1])
