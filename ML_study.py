@@ -20,11 +20,11 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn import preprocessing
-from sklearn.metrics import confusion_matrix
 
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix
 
 
 FEM_parm = pd.read_csv('FEM_parm.csv', header=None, names=np.arange(1, 22))
@@ -35,7 +35,7 @@ test_freq = pd.read_csv(
     'test_freq.csv', header=None, names=np.arange(1, 21))
 # sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
 # #Cut the input to bins
-trus = 0.05
+trus = 0.15
 bins = [0, (1-trus)*7e10, (1+trus)*7e10, 3*7e10]
 FEM_parm_cats = pd.DataFrame()
 test_parm_cats = pd.DataFrame()
@@ -60,7 +60,7 @@ test_X = np.ascontiguousarray(test_X, dtype=np.float32)
 y = FEM_parm_cats.values
 y = np.ascontiguousarray(y, dtype=np.int8)
 test_y = test_parm_cats.values
-test_y = np.ascontiguousarray(test_y, dtype=np.float32)
+test_y = np.ascontiguousarray(test_y, dtype=np.int8)
 
 # Scale the samples to 0 mean and 1 std
 scaler = preprocessing.StandardScaler().fit(X)
@@ -94,7 +94,7 @@ my_pipeline.set_params(multioutputclassifier__estimator__C=1,
                        multioutputclassifier__estimator__gamma='auto')
 predictions = my_pipeline.predict(test_X)
 
-# %%Plot the result and the ideal
+# %%
 results = pd.DataFrame(predictions,
                        columns=np.arange(1, 22)
                        ).apply(pd.value_counts).T
@@ -106,7 +106,7 @@ results.plot(kind='bar', stacked=True)
 # print(scores)
 # %%
 
-# #Plot the boundarys
+# plot the boudarys
 # plt.figure()
 # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
 # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
@@ -129,5 +129,4 @@ results.plot(kind='bar', stacked=True)
 # plt.axis('tight')
 # plt.show()
 
-# Plot confusion matrix
-confusion_matrix(test_y[:, 1], predictions[:, 1])
+confusion_matrix(test_y[:,2], predictions[:,2])
