@@ -20,7 +20,7 @@ import pyDOE
 
 
 ##Sampling the input parameters
-lhd = pyDOE.lhs(21, samples=1000)
+lhd = pyDOE.lhs(21, samples=3000)
 #sns.jointplot(lhd[:,0],lhd[:,1])
 
 ##Sampling the FEM data
@@ -62,5 +62,3 @@ pd.DataFrame(FEM_parm).to_csv('FEM_parm.csv',index = False, header = False)
 pd.DataFrame(test_parm).to_csv('test_parm.csv',index = False, header = False)
 pd.DataFrame(FEM_freq).to_csv('FEM_freq.csv',index = False, header = False)
 pd.DataFrame(test_freq).to_csv('test_freq.csv',index = False, header = False)
-
-
