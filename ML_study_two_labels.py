@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Mar 12 12:38:10 2018
-
 @author: zhaox
 """
 
@@ -37,17 +36,18 @@ test_freq = pd.read_csv(
     'test_freq.csv', header=None, names=np.arange(1, 21))
 # sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
 # #Cut the input to bins
-trus = 0.13
+trus = 0.15
 bins = [0, (1-trus)*7e10, (1+trus)*7e10, 3*7e10]
 FEM_parm_cats = pd.DataFrame()
 test_parm_cats = pd.DataFrame()
 for col in FEM_parm:
     FEM_parm_cats[col] = pd.cut(FEM_parm[col], bins, labels=[
                                 'lower', 'in', 'higher']).cat.codes
+    FEM_parm_cats.loc[FEM_parm_cats[col] == 2, col] = 0
 for col in test_parm:
     test_parm_cats[col] = pd.cut(test_parm[col], bins, labels=[
                                  'lower', 'in', 'higher']).cat.codes
-
+    test_parm_cats.loc[test_parm_cats[col] == 2, col] = 0
 # for col in test_freq:
 #    test_freq[col]=pd.cut(test_freq[col],100).cat.codes
 # for col in FEM_freq:
@@ -101,14 +101,13 @@ results = pd.DataFrame(predictions,
                        columns=np.arange(1, 22)
                        ).apply(pd.value_counts).T
 # results=test_parm_cats.apply(pd.value_counts).T
-results.columns = ['lower', 'in', 'higher']
+results.columns = ['out', 'in']
 results.plot(kind='bar', stacked=True)
 # pd.DataFrame(test_parm_cats,columns=np.arange(1,22)).plot(kind='hist',subplots=True)
 # scores = cross_val_score(my_pipeline, X, y, scoring='neg_mean_absolute_error')
 # print(scores)
 # %%
-
-# plot the boudarys
+# Plot the boundarys
 # plt.figure()
 # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
 # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
@@ -130,9 +129,8 @@ results.plot(kind='bar', stacked=True)
 #             cmap=plt.cm.Paired, edgecolors='k')
 # plt.axis('tight')
 # plt.show()
-
 con_matrix=confusion_matrix(test_y[:, 2], predictions[:, 2])
-alpha = ['low','in','high']
+alpha = ['out','in']
 fig = plt.figure()
 ax = fig.add_subplot(111)
 cax = ax.matshow(con_matrix, interpolation='nearest')
