@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import datetime
 from matplotlib.patches import Ellipse
 from scipy.stats import norm, chi2,f_oneway
+from tqdm import tqdm
 
 class uncertainty_analysis:
     def __init__(self,analysis):
@@ -19,10 +20,10 @@ class uncertainty_analysis:
         random.seed(seed)
         x=np.empty(length)
         for i in range(0,length):
-            x[i]=random.gauss(mu,sigma) 
+            x[i]=random.gauss(mu,sigma)
         return x
         #plt.hist(x)
-    
+
     def random_two_generator(mean=[0,0],cov=[[1, 0], [1, 1]],size=5000):
         x, y = np.random.multivariate_normal(mean, cov, 5000).T
         return x,y
@@ -35,7 +36,7 @@ class uncertainty_analysis:
             points : An Nx2 array of the data points.
             nstd : The radius of the ellipse in numbers of standard deviations.
                 Defaults to 2 standard deviations.
-            ax : The axis that the ellipse will be plotted on. Defaults to the 
+            ax : The axis that the ellipse will be plotted on. Defaults to the
                 current axis.
             Additional keyword arguments are pass on to the ellipse patch.
         Returns
@@ -60,7 +61,7 @@ class uncertainty_analysis:
         cov = np.cov(points, rowvar=False)
         #return uncertainty_analysis.plot_cov_ellipse(cov, pos, nstd, ax, **kwargs)
         return uncertainty_analysis.plot_chi_cov_ellipse(cov,pos,nsig=nstd,ax=ax,**kwargs)
-       
+
     def plot_chi_cov_ellipse(cov,pos, q=None, nsig=None, ax=None, **kwargs):
         """
         Parameters
@@ -70,9 +71,9 @@ class uncertainty_analysis:
         q : float, optional
             Confidence level, should be in (0, 1)
         nsig : int, optional
-            Confidence level in unit of standard deviations. 
+            Confidence level in unit of standard deviations.
             E.g. 1 stands for 68.3% and 2 stands for 95.4%.
-        ax : The axis that the ellipse will be plotted on. Defaults to the 
+        ax : The axis that the ellipse will be plotted on. Defaults to the
                 current axis.
             Additional keyword arguments are pass on to the ellipse patch.
         Returns
@@ -81,7 +82,7 @@ class uncertainty_analysis:
         """
         if ax is None:
             ax = plt.gca()
-            
+
         if q is not None:
             q = np.asarray(q)
         elif nsig is not None:
@@ -89,32 +90,32 @@ class uncertainty_analysis:
         else:
             raise ValueError('One of `q` and `nsig` should be specified.')
         r2 = chi2.ppf(q, 2)
-    
+
         val, vec = np.linalg.eigh(cov)
         width, height = 2 * np.sqrt(val[:, None] * r2)
         theta = np.degrees(np.arctan2(*vec[::-1, 0]))
         ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
-    
+
         ax.add_artist(ellip)
-        return ellip   
-    
+        return ellip
+
     def random_parm_generator(mean,std,length):
         parm=np.zeros((length,len(mean)))
         for i in range(0,len(mean)):
             parm[:,i]=uncertainty_analysis.random_series_generator(length=length,mu=mean[i],sigma=std[i],seed=(i+1)*datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         return parm
-    
+
     def random_freq_run(analysis,parm,target,index):
         if analysis.freq is None:
-            analysis.run()       
+            analysis.run()
         num_random=parm.shape[0]
         random_freq=np.zeros((num_random,len(analysis.freq)))
         for i in range(0,num_random):
             freq,modn=analysis.reanalysis(target,index,parm[i])
             random_freq[i]=freq.T
         return random_freq
-    
-    def plot_with_ellipse(random_freq,nstd=2,alpha=0.5):              
+
+    def plot_with_ellipse(random_freq,nstd=2,alpha=0.5):
         """
         #-----------Generate and plot random frequencies----------------
         #parm=uncertainty_analysis.uncertainty_analysis.random_parm_generator(mean=np.ones(5)*6.3e10,std=np.ones(5)*6.3e10*0.17,length=1000)
@@ -144,7 +145,7 @@ class uncertainty_analysis:
         axes.scatter(x, y, color='red')
         axes.set_xlabel('Frequency(Hz)')
         axes.set_ylabel('Frequency(Hz)')
-    
+
     def six_level_F_test(analysis,target_parm,list_parm_level=1+np.array([-.1,-.05,-.01,.01,.05,.1]),mean=np.ones(1)*7e10,std=np.ones(1)*7e10*0.27,length=100):
         """
         f_all=np.zeros([20,21])
@@ -160,18 +161,18 @@ class uncertainty_analysis:
         plt.xlabel('Parameter number')
         plt.title('F-test result(p-value)')
         """
-        
+
         parm=uncertainty_analysis.random_parm_generator(mean,std,length)
         random_freq=uncertainty_analysis.random_freq_run(analysis,parm,target='E',index=list(np.array([target_parm])-1))
         sample_freq=np.zeros([len(list_parm_level),random_freq.shape[0],random_freq.shape[1]])
         for i,parm_level in enumerate(list_parm_level) :
             parm2=uncertainty_analysis.random_parm_generator(mean*parm_level,std,length)
-            sample_freq[i]=uncertainty_analysis.random_freq_run(analysis,parm2,target='E',index=list(np.array([target_parm])-1))        
+            sample_freq[i]=uncertainty_analysis.random_freq_run(analysis,parm2,target='E',index=list(np.array([target_parm])-1))
         #one way F-test
         #In situation of multi parameters, try http://blog.csdn.net/hjh00/article/details/48783631
         f,p=f_oneway(random_freq,sample_freq[0],sample_freq[1],sample_freq[2],sample_freq[3],sample_freq[4],sample_freq[5])
         return f,p
-    def global_sensitivity_LS(analysis,test_freq,parm,sensi_parm_index,index,target='E'):  
+    def global_sensitivity_LS(analysis,test_freq,parm,sensi_parm_index,index,target='E'):
         '''
         test_freq=np.loadtxt(open('test_freq.csv','rb'),delimiter=',',skiprows=0)
         length=100
@@ -181,17 +182,17 @@ class uncertainty_analysis:
         mean=np.ones(len(index))*6.3e10
         std=np.ones(len(index))*6.3e10*0.17
         parm=uncertainty_analysis.uncertainty_analysis.random_parm_generator(mean,std,length)
-        
+
         ss=np.zeros((21))
         for i in range(21):
             sensi_parm_index=i
             ss[i]=uncertainty_analysis.uncertainty_analysis.global_sensitivity_LS(analysis1,test_freq,parm,sensi_parm_index,index,target)
-        
+
         '''
         length_parm=len(parm)
         mean=np.mean(parm,axis=0)
         parm=np.concatenate((parm,mean.reshape(1,len(mean))),axis=0)
-        
+
         f0=0
         D=0
         D_i=0
@@ -209,10 +210,10 @@ class uncertainty_analysis:
         D_i=D_i/length_parm-np.square(f0)
         SS=1-(D_i/D)
         return SS
-    def global_sensitivity_seprate(analysis,test_freq,parm,sensi_parm_index,index,target='E'):        
+    def global_sensitivity_seprate(analysis,test_freq,parm,sensi_parm_index,index,target='E'):
         '''
         Calculate the sensitivity of different frequencies seprately
-        
+
         test_freq=np.loadtxt(open('test_freq.csv','rb'),delimiter=',',skiprows=0)
         length=100
         target='E'
@@ -221,17 +222,17 @@ class uncertainty_analysis:
         mean=np.ones(len(index))*6.3e10
         std=np.ones(len(index))*6.3e10*0.17
         parm=uncertainty_analysis.uncertainty_analysis.random_parm_generator(mean,std,length)
-        
+
         ss=np.zeros((21,test_freq.shape[1]))
         for i in range(21):
             sensi_parm_index=i
             ss[i]=uncertainty_analysis.uncertainty_analysis.global_sensitivity_seprate(analysis1,test_freq,parm,sensi_parm_index,index,target)
-        
+
         '''
         length_parm=len(parm)
         mean=np.mean(parm,axis=0)
         parm=np.concatenate((parm,mean.reshape(1,len(mean))),axis=0)
-        
+
         f0=np.zeros(test_freq.shape[1])
         D=np.zeros(test_freq.shape[1])
         D_i=np.zeros(test_freq.shape[1])
@@ -249,8 +250,15 @@ class uncertainty_analysis:
         D_i=D_i/length_parm-np.square(f0)
         SS=1-(D_i/D)
         return SS
-
-
-
-
-
+    def random_FRF_run(analysis,parm,target,index):
+        if analysis.H is None:
+            print("Warning: No initial H for random run, using defaults!")
+            analysis.FRF_run()
+        H_shape=analysis.H.shape
+        num_random=parm.shape[0]
+        random_FRF=np.zeros((num_random,*H_shape),dtype=np.complex_)
+        print('Start to sample the FRF data...')
+        for i in tqdm(range(0,num_random)):
+            H = analysis.FRF_reanalysis(target,index,parm[i])
+            random_FRF[i,:,:]=H
+        return random_FRF

@@ -12,6 +12,12 @@ import FE_model
 class modal_analysis:
     freq=None
     modn=None
+    H = None
+    truncate_order = None
+    list_points = None
+    freq_list = None
+    alpha = None
+    beta = None
     def __init__(self,FE_model):
         self.FE_model=FE_model
 
@@ -94,7 +100,12 @@ class modal_analysis:
         analysis2=modal_analysis(FE2)
         freq,modn=analysis2.run()
         return freq.real,modn
-    def FRF_run(self,truncate_order=20,list_points=[4,9,14,19],freq_list = np.arange(1,1300,1),alpha=1,beta=.0001):
+    def FRF_run(self,truncate_order=20,list_points=[4,9,14,19],freq_list = np.arange(1,1200,1),alpha=1,beta=.0001):
+        self.truncate_order = truncate_order
+        self.list_points = list_points
+        self.freq_list = freq_list
+        self.alpha = alpha
+        self.beta = beta
         if self.freq is None:
             self.run()
         modn = self.modn
@@ -115,4 +126,14 @@ class modal_analysis:
         i_lower = np.tril_indices(H.shape[0], -1)
         for i in range(H.shape[2]):
             H[:,:,i][i_lower] = H[:,:,i].T[i_lower]
+        self.H = H
+        return H
+    def FRF_reanalysis(self,target='E',index=None,data=None):
+        if self.H is None:
+            print("Warning: No initial H for reanalysis, using defaults!")
+            self.FRF_run()
+        properties2 = self.FE_model.properties.modify(target=target,index=index,data=data)
+        FE2 = FE_model.FE_model(self.FE_model.mesh,properties2,self.FE_model.boundary_condition)
+        analysis2 = modal_analysis(FE2)
+        H = analysis2.FRF_run(truncate_order=self.truncate_order,list_points=self.list_points,freq_list=self.freq_list,alpha=self.alpha,beta=self.beta)
         return H
