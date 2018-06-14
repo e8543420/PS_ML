@@ -32,6 +32,9 @@ import re
 
 FEM_parm = pd.read_csv('FEM_parm_frf.csv', header=None, names=np.arange(1, 22))
 test_parm = pd.read_csv('test_parm_frf.csv', header=None, names=np.arange(1, 22))
+# Drop the first parameter
+FEM_parm=FEM_parm.drop([1],axis=1)
+test_parm=test_parm.drop([1],axis=1)
 FEM_freq = pd.read_csv('FEM_frf.csv', header=None)
 test_freq = pd.read_csv('test_frf.csv', header=None)
 # Convert the string to complex
@@ -39,7 +42,7 @@ FEM_freq = FEM_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('(
 test_freq = test_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('()'))))
 # sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
 # #Cut the input to bins
-trus = 0.15
+trus = 0.12
 bins = [0, (1-trus)*7e10, (1+trus)*7e10, 3*7e10]
 FEM_parm_cats = pd.DataFrame()
 test_parm_cats = pd.DataFrame()
@@ -71,7 +74,7 @@ test_y = np.ascontiguousarray(test_y, dtype=np.int8)
 scaler = preprocessing.StandardScaler().fit(X)
 X = scaler.transform(X)
 test_X = scaler.transform(test_X)
-rng = np.random.RandomState(3)
+rng = np.random.RandomState(13)
 # model=RandomForestClassifier()
 model = MultiOutputClassifier(
                               SVC(
@@ -93,7 +96,7 @@ model = MultiOutputClassifier(
 #    predictions = grid.predict(test_X)
 #    my_pipeline = grid
 # %% Feature reduction
-n_components = 150
+n_components = 300
 print ('Extracting the PCA from the input data...')
 pca = PCA(n_components=n_components, svd_solver="auto", whiten=True).fit(X)
 eigendata = pca.components_
@@ -110,11 +113,14 @@ predictions = my_pipeline.predict(test_X)
 
 # %%
 results = pd.DataFrame(predictions,
-                       columns=np.arange(1, 22)
+                       columns=np.arange(2, 22)
                        ).apply(pd.value_counts).T
-# results=test_parm_cats.apply(pd.value_counts).T
 results.columns = ['lower', 'in', 'higher']
-results.plot(kind='bar', stacked=True)
+results.plot(kind='bar', stacked=True, title='Predicted results')
+
+# results_ideal = test_parm_cats.apply(pd.value_counts).T
+# results_ideal.columns = ['lower','in','higher']
+# results_ideal.plot(kind='bar', stacked=True, title='Ideal results')
 # pd.DataFrame(test_parm_cats,columns=np.arange(1,22)).plot(kind='hist',subplots=True)
 # scores = cross_val_score(my_pipeline, X, y, scoring='neg_mean_absolute_error')
 # print(scores)
