@@ -42,7 +42,7 @@ FEM_freq = FEM_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('(
 test_freq = test_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('()'))))
 # sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
 # #Cut the input to bins
-trus = 0.12
+trus = 0.20
 bins = [0, (1-trus)*7e10, (1+trus)*7e10, 3*7e10]
 FEM_parm_cats = pd.DataFrame()
 test_parm_cats = pd.DataFrame()
@@ -61,9 +61,11 @@ for col in test_parm:
 # mean_test_freq = test_freq.mean(axis=0).values
 #
 # X = ((FEM_freq.values/mean_test_freq)-1)*10
-X = np.ascontiguousarray(np.abs(FEM_freq.values), dtype=np.float32)
+new_X = np.concatenate((FEM_freq.values.real,FEM_freq.values.imag),axis=1)
+X = np.ascontiguousarray(new_X, dtype=np.float32)
 # test_X = ((test_freq.values/mean_test_freq-1)*10)
-test_X = np.ascontiguousarray(np.abs(test_freq.values), dtype=np.float32)
+new_test_X = np.concatenate((test_freq.values.real,test_freq.values.imag),axis=1)
+test_X = np.ascontiguousarray(new_test_X, dtype=np.float32)
 y = FEM_parm_cats.values
 y = np.ascontiguousarray(y, dtype=np.int8)
 test_y = test_parm_cats.values
@@ -96,7 +98,7 @@ model = MultiOutputClassifier(
 #    predictions = grid.predict(test_X)
 #    my_pipeline = grid
 # %% Feature reduction
-n_components = 300
+n_components = 100
 print ('Extracting the PCA from the input data...')
 pca = PCA(n_components=n_components, svd_solver="auto", whiten=True).fit(X)
 eigendata = pca.components_
@@ -118,9 +120,9 @@ results = pd.DataFrame(predictions,
 results.columns = ['lower', 'in', 'higher']
 results.plot(kind='bar', stacked=True, title='Predicted results')
 
-# results_ideal = test_parm_cats.apply(pd.value_counts).T
-# results_ideal.columns = ['lower','in','higher']
-# results_ideal.plot(kind='bar', stacked=True, title='Ideal results')
+results_ideal = test_parm_cats.apply(pd.value_counts).T
+results_ideal.columns = ['lower','in','higher']
+results_ideal.plot(kind='bar', stacked=True, title='Ideal results')
 # pd.DataFrame(test_parm_cats,columns=np.arange(1,22)).plot(kind='hist',subplots=True)
 # scores = cross_val_score(my_pipeline, X, y, scoring='neg_mean_absolute_error')
 # print(scores)
