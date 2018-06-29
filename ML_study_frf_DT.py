@@ -20,6 +20,7 @@ from sklearn.preprocessing import Imputer
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn import preprocessing
 
@@ -61,24 +62,13 @@ for col in test_parm:
 # mean_test_freq = test_freq.mean(axis=0).values
 #
 # X = ((FEM_freq.values/mean_test_freq)-1)*10
+# X = ((FEM_freq.values/mean_test_freq)-1)*10
 X = np.log(np.abs(np.ascontiguousarray(np.concatenate((FEM_freq.values.real,FEM_freq.values.imag),axis=1), dtype=np.float32)))
-# test_X = ((test_freq.values/mean_test_freq-1)*10)
 test_X = np.log(np.abs(np.ascontiguousarray(np.concatenate((test_freq.values.real,test_freq.values.imag),axis=1), dtype=np.float32)))
 y = FEM_parm_cats.values
 y = np.ascontiguousarray(y, dtype=np.int8)
 test_y = test_parm_cats.values
 test_y = np.ascontiguousarray(test_y, dtype=np.int8)
-
-## Plot the FRF
-# FEM_frf_plot=FEM_freq.values[100].reshape(21,1199)
-# plt.subplots_adjust(hspace=0.4)
-# plt.subplot(211)
-# plt.plot(FEM_frf_plot.real[5])
-# plt.title('Frequency Response Fuction (Real)')
-# plt.subplot(212)
-# plt.plot(FEM_frf_plot.imag[5])
-# plt.title('Frequency Response Fuction (Imaginary)')
-# plt.show()
 
 # %%
 # Scale the samples to 0 mean and 1 std
@@ -88,17 +78,20 @@ test_X = scaler.transform(test_X)
 rng = np.random.RandomState(231)
 # model=RandomForestClassifier()
 model = MultiOutputClassifier(
-                              SVC(
-                                  kernel='rbf',
-                                  cache_size=1000,
-                                  random_state=rng,
-                                  class_weight='balanced',
-                                  verbose=True
-                                  ), n_jobs=1
+                                RandomForestClassifier(
+                                    n_estimators=400,
+                                    verbose=1
+                                )
                               )
 
+# model = MultiOutputClassifier(
+#                                 KNeighborsClassifier(
+#                                     n_neighbors=5,
+#                                 )
+#                               )
+
 # %% Feature reduction
-n_components = 200
+n_components = 400
 print ('Extracting the PCA from the input data...')
 pca = PCA(n_components=n_components, svd_solver="auto", whiten=True).fit(X)
 eigendata = pca.components_
@@ -129,8 +122,6 @@ print ("PCA finished")
 
 # %%  Normal pipeline
 my_pipeline = make_pipeline(model)
-my_pipeline.set_params(multioutputclassifier__estimator__C=0.01,
-                       multioutputclassifier__estimator__gamma='auto')
 my_pipeline.fit(X, y)
 predictions = my_pipeline.predict(test_X)
 

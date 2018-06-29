@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Mar 12 12:38:10 2018
-
 @author: zhaox
 """
 
@@ -30,6 +29,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 import re
 
+
 FEM_parm = pd.read_csv('FEM_parm_frf.csv', header=None, names=np.arange(1, 22))
 test_parm = pd.read_csv('test_parm_frf.csv', header=None, names=np.arange(1, 22))
 # Drop the first parameter
@@ -42,43 +42,32 @@ FEM_freq = FEM_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('(
 test_freq = test_freq.apply(lambda col: col.apply(lambda val: complex(val.strip('()'))))
 # sns.jointplot(x=FEM_parm[1],y=FEM_parm[2])
 # #Cut the input to bins
-trus = 0.15
+trus = 0.10
 bins = [0, (1-trus)*7e10, (1+trus)*7e10, 3*7e10]
 FEM_parm_cats = pd.DataFrame()
 test_parm_cats = pd.DataFrame()
 for col in FEM_parm:
     FEM_parm_cats[col] = pd.cut(FEM_parm[col], bins, labels=[
                                 'lower', 'in', 'higher']).cat.codes
+    FEM_parm_cats.loc[FEM_parm_cats[col] == 2, col] = 0
 for col in test_parm:
     test_parm_cats[col] = pd.cut(test_parm[col], bins, labels=[
                                  'lower', 'in', 'higher']).cat.codes
-
+    test_parm_cats.loc[test_parm_cats[col] == 2, col] = 0
 # for col in test_freq:
 #    test_freq[col]=pd.cut(test_freq[col],100).cat.codes
 # for col in FEM_freq:
 #    FEM_freq[col]=pd.cut(FEM_freq[col],100).cat.codes
 
-# mean_test_freq = test_freq.mean(axis=0).values
-#
-# X = ((FEM_freq.values/mean_test_freq)-1)*10
-X = np.log(np.abs(np.ascontiguousarray(np.concatenate((FEM_freq.values.real,FEM_freq.values.imag),axis=1), dtype=np.float32)))
+new_X = np.concatenate((FEM_freq.values.real,FEM_freq.values.imag),axis=1)
+X = np.log(np.abs(np.ascontiguousarray(new_X, dtype=np.float32)))
 # test_X = ((test_freq.values/mean_test_freq-1)*10)
-test_X = np.log(np.abs(np.ascontiguousarray(np.concatenate((test_freq.values.real,test_freq.values.imag),axis=1), dtype=np.float32)))
+new_test_X = np.concatenate((test_freq.values.real,test_freq.values.imag),axis=1)
+test_X = np.log(np.abs(np.ascontiguousarray(new_test_X, dtype=np.float32)))
 y = FEM_parm_cats.values
 y = np.ascontiguousarray(y, dtype=np.int8)
 test_y = test_parm_cats.values
 test_y = np.ascontiguousarray(test_y, dtype=np.int8)
-
-## Plot the FRF
-# FEM_frf_plot=FEM_freq.values[100].reshape(21,1199)
-# plt.subplots_adjust(hspace=0.4)
-# plt.subplot(211)
-# plt.plot(FEM_frf_plot.real[5])
-# plt.title('Frequency Response Fuction (Real)')
-# plt.subplot(212)
-# plt.plot(FEM_frf_plot.imag[5])
-# plt.title('Frequency Response Fuction (Imaginary)')
-# plt.show()
 
 # %%
 # Scale the samples to 0 mean and 1 std
@@ -96,7 +85,6 @@ model = MultiOutputClassifier(
                                   verbose=True
                                   ), n_jobs=1
                               )
-
 # %% Feature reduction
 n_components = 200
 print ('Extracting the PCA from the input data...')
@@ -108,50 +96,37 @@ test_X = pca.transform(test_X)
 print ("PCA finished")
 
 # %%  Hyper-parameter selection
-# C_range = np.logspace(-2, 10, 13)
-# gamma_range = np.logspace(-9, 3, 13)
-# param_grid = dict(multioutputclassifier__estimator__gamma=gamma_range, multioutputclassifier__estimator__C=C_range)
-# my_pipeline = make_pipeline(model)
-# grid = GridSearchCV(my_pipeline, param_grid=param_grid,cv=3)
-# grid.fit(X,y)
-# predictions = grid.predict(test_X)
-# my_pipeline = grid
-# print("Best estimator found by grid search:")
-# print(grid.best_estimator_)
-
-# Pipeline(memory=None,
-#      steps=[('multioutputclassifier', MultiOutputClassifier(estimator=SVC(C=0.01, cache_size=1000, class_weight='balanced', coef0=0.0,
-#   decision_function_shape='ovr', degree=3, gamma=1.0000000000000001e-09,
-#   kernel='rbf', max_iter=-1, probability=False,
-#   random_state=<mtrand.RandomState object at 0x0000022CACD98C60>,
-#   shrinking=True, tol=0.001, verbose=True),
-#            n_jobs=1))])
+#    C_range = np.logspace(-2, 10, 13)
+#    gamma_range = np.logspace(-9, 3, 13)
+#    param_grid = dict(multioutputclassifier__estimator__gamma=gamma_range, multioutputclassifier__estimator__C=C_range)
+#    my_pipeline = make_pipeline(model)
+#    grid = GridSearchCV(my_pipeline, param_grid=param_grid,cv=3)
+#    grid.fit(X,y)
+#    predictions = grid.predict(test_X)
+#    my_pipeline = grid
 
 # %%  Normal pipeline
 my_pipeline = make_pipeline(model)
-my_pipeline.set_params(multioutputclassifier__estimator__C=0.01,
+my_pipeline.set_params(multioutputclassifier__estimator__C=10,
                        multioutputclassifier__estimator__gamma='auto')
 my_pipeline.fit(X, y)
 predictions = my_pipeline.predict(test_X)
-
-
 
 # %%
 results = pd.DataFrame(predictions,
                        columns=np.arange(2, 22)
                        ).apply(pd.value_counts).T
-results.columns = ['lower', 'in', 'higher']
-results.plot(kind='bar', stacked=True, title='Predicted results')
-
+# results=test_parm_cats.apply(pd.value_counts).T
+results.columns = ['out', 'in']
+results.plot(kind='bar', stacked=True)
 results_ideal = test_parm_cats.apply(pd.value_counts).T
-results_ideal.columns = ['lower','in','higher']
+results_ideal.columns = ['out', 'in']
 results_ideal.plot(kind='bar', stacked=True, title='Ideal results')
 # pd.DataFrame(test_parm_cats,columns=np.arange(1,22)).plot(kind='hist',subplots=True)
 # scores = cross_val_score(my_pipeline, X, y, scoring='neg_mean_absolute_error')
 # print(scores)
 # %%
-
-# plot the boudarys
+# Plot the boundarys
 # plt.figure()
 # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
 # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
@@ -173,9 +148,8 @@ results_ideal.plot(kind='bar', stacked=True, title='Ideal results')
 #             cmap=plt.cm.Paired, edgecolors='k')
 # plt.axis('tight')
 # plt.show()
-
 con_matrix=confusion_matrix(test_y[:, 2], predictions[:, 2])
-alpha = ['low','in','high']
+alpha = ['out','in']
 fig = plt.figure()
 ax = fig.add_subplot(111)
 cax = ax.matshow(con_matrix, interpolation='nearest')
